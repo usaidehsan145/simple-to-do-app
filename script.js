@@ -7,6 +7,8 @@ document.addEventListener('DOMContentLoaded', () => {
     const nextDateButton = document.getElementById('next-date');
     const taskInput = document.getElementById('task-input');
     const timeIcon = document.getElementById('time-icon');
+    const container = document.querySelector('.container');
+    const spinner = document.getElementById('spinner');
 
     const hourHand = document.getElementById('hour-hand');
     const minuteHand = document.getElementById('minute-hand');
@@ -15,6 +17,10 @@ document.addEventListener('DOMContentLoaded', () => {
     let currentDate = new Date();
     let selectedDate = null;
     let selectedTime = null;
+
+    // Show spinner and hide container
+    container.style.display = 'none';
+    spinner.style.display = 'block';
 
     function updateClock() {
         const now = new Date();
@@ -47,7 +53,7 @@ document.addEventListener('DOMContentLoaded', () => {
         updateDateDisplay();
     }
 
-    function createTaskElement(taskText, taskDueDate, taskDueTime, isPinned = false) {
+    function createTaskElement(taskText, taskDueDate, taskDueTime, isPinned = false, isChecked = false) {
         const task = document.createElement('div');
         task.className = 'task';
         if (isPinned) {
@@ -60,6 +66,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
         const checkbox = document.createElement('input');
         checkbox.type = 'checkbox';
+        checkbox.checked = isChecked;
 
         const taskDetails = document.createElement('div');
         taskDetails.className = 'task-details';
@@ -82,7 +89,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
         const pinItem = document.createElement('div');
         pinItem.className = 'dropdown-item';
-        pinItem.textContent = '📌 Pin on the top';
+        pinItem.textContent = isPinned ? '📌 Remove from pin' : '📌 Pin on the top';
 
         const memoItem = document.createElement('div');
         memoItem.className = 'dropdown-item';
@@ -115,8 +122,8 @@ document.addEventListener('DOMContentLoaded', () => {
         task.appendChild(ellipsisBtn);
         task.appendChild(dropdownMenu);
 
-        // Add task to the appropriate list based on the due date
-        const currentContent = getContentElement(new Date(taskDueDate));
+        // Add task to the appropriate list based on the due date and completion status
+        const currentContent = isChecked ? document.getElementById('completed-content') : getContentElement(new Date(taskDueDate));
         const pinnedTasksContainer = currentContent.querySelector('.pinned-tasks');
         const taskListContainer = currentContent.querySelector('.task-list');
 
@@ -142,6 +149,7 @@ document.addEventListener('DOMContentLoaded', () => {
             }
             dropdownMenu.style.display = 'none';
             addNotification('Task Pinned', taskText);
+            saveTasks();
         });
 
         memoItem.addEventListener('click', () => {
@@ -155,6 +163,7 @@ document.addEventListener('DOMContentLoaded', () => {
         deleteItem.addEventListener('click', () => {
             task.remove();
             addNotification('Task Deleted', taskText);
+            saveTasks();
         });
 
         sortByNameItem.addEventListener('click', () => {
@@ -171,6 +180,11 @@ document.addEventListener('DOMContentLoaded', () => {
             if (event.target.checked) {
                 moveTaskToCompleted(task);
                 addNotification('Task Completed', taskText);
+                saveTasks();
+            } else {
+                moveTaskToActive(task);
+                addNotification('Task Uncompleted', taskText);
+                saveTasks();
             }
         });
 
@@ -181,12 +195,20 @@ document.addEventListener('DOMContentLoaded', () => {
         });
 
         addNotification('Task Created', taskText);
+        saveTasks();
     }
 
     function moveTaskToCompleted(task) {
         const completedContent = document.getElementById('completed-content');
         const completedTaskList = completedContent.querySelector('.task-list');
         completedTaskList.appendChild(task);
+    }
+
+    function moveTaskToActive(task) {
+        const taskDueDate = new Date(task.querySelector('.task-subtext').textContent.split('Due: ')[1].split(' ')[0]);
+        const currentContent = getContentElement(taskDueDate);
+        const taskListContainer = currentContent.querySelector('.task-list');
+        taskListContainer.appendChild(task);
     }
 
     function getContentElement(dueDate) {
@@ -222,6 +244,38 @@ document.addEventListener('DOMContentLoaded', () => {
         notification.innerHTML = `<strong>${type}:</strong> ${taskText} at ${timeString}`;
         
         notificationList.insertBefore(notification, notificationList.firstChild);
+    }
+
+    function saveTasks() {
+        const allTasks = [];
+
+        document.querySelectorAll('.task').forEach(task => {
+            const taskText = task.querySelector('.task-text').textContent;
+            const taskSubtext = task.querySelector('.task-subtext').textContent;
+            const isPinned = task.classList.contains('pinned');
+            const isChecked = task.querySelector('input[type="checkbox"]').checked;
+
+            allTasks.push({
+                text: taskText,
+                subtext: taskSubtext,
+                pinned: isPinned,
+                checked: isChecked
+            });
+        });
+
+        localStorage.setItem('tasks', JSON.stringify(allTasks));
+    }
+
+    function loadTasks() {
+        const savedTasks = JSON.parse(localStorage.getItem('tasks'));
+
+        if (savedTasks) {
+            savedTasks.forEach(task => {
+                const dueDate = new Date(task.subtext.split('Due: ')[1].split(' ')[0]);
+                const dueTime = task.subtext.split(' ')[2];
+                createTaskElement(task.text, dueDate, dueTime, task.pinned, task.checked);
+            });
+        }
     }
 
     tabs.forEach(tab => {
@@ -300,4 +354,9 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     updateDateDisplay();
+    loadTasks();
+
+    // Hide spinner and show container
+    container.style.display = 'flex';
+    spinner.style.display = 'none';
 });
