@@ -9,7 +9,7 @@ body {
 }
 
 .container {
-    display: flex;
+    display: none;
     justify-content: space-around;
     width: 100%;
     padding: 20px;
@@ -316,7 +316,35 @@ body {
     }
     
     .card {
-        width: 70%;
-        margin: 20px 0;
+        width: 90%;
+        margin: 10px 0;
     }
+
+    .task-input-container {
+        flex-direction: column;
+        align-items: stretch;
+    }
+
+    #task-input {
+        width: calc(100% - 40px);
+        margin-left: 0;
+        margin-top: 10px;
+    }
+}
+
+.spinner {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    width: 50px;
+    height: 50px;
+    border: 5px solid #f3f3f3;
+    border-top: 5px solid #FF4081;
+    border-radius: 50%;
+    animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+    0% { transform: translate(-50%, -50%) rotate(0deg); }
+    100% { transform: translate(-50%, -50%) rotate(360deg); }
 }
